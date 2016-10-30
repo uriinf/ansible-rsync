@@ -4,7 +4,11 @@ Runs rsyncd container on remote host and sync data.
 ```sh
 ansible-playbook -i static.hosts deploy-static.yml
 ```
+It will sync current directory to destination_host:/tmp/rsync
 ### Playbook requirements:
 * dst_host (rsync data to)
  * docker and docker-py installed and running
- * user deploy with permissions to run docker and modify iptables (or sudo)
+ * user deploy with permissions to run docker and modify iptables with sudo
+ 
+ ### Parameters:
+ 
