@@ -1,0 +1,79 @@
+---
+  - name: "Pull docker image rsync"
+    docker_image:
+      name: "uriinf/rsync"
+      tag: "latest"
+
+  - name: "Set dynamic password for rsync"
+    set_fact:
+      rsync_password: "{{ lookup('password', '/tmp/passwordfile chars=ascii_letters') }}"
+
+  - name: "Start docker container rsync"
+    docker_container:
+      name: "rsyncd"
+      image: "uriinf/rsync"
+      volumes:
+        - "{{ static_dst }}:/rsync_dir:rw"
+      env:
+        RSYNC_DIR: "{{ static_dst }}"
+        PASSWORD: "{{ rsync_password }}"
+      pull: yes
+      network_mode: "host"
+      state: started
+      restart_policy: always
+      log_driver: json-file
+      log_options:
+        max-size: "5m"
+        max-file: "1"
+
+  - name: "Add iptables rsync rule"
+    iptables:
+      chain: INPUT
+      source: "{{ rsync_src_ip }}"
+      protocol: tcp
+      match: tcp
+      destination_port: "{{ rsync_port }}"
+      jump: ACCEPT
+      state: present
+    become: yes
+    when: (rsync_src_ip is defined and rsync_src_ip | ipv4)
+
+  - name: "Deploy static"
+    command: rsync -azc --out-format="%n" {% if delete_mode %}--delete {% endif %} --delay-updates --exclude=.svn --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r {{ static_src }} rsync://rsyncuser@{{ inventory_hostname }}:873/data/
+    register: deploy_static_result
+    environment:
+      RSYNC_PASSWORD: "{{ rsync_password }}"
+      {% if wan_ip and rsync_src_ip | ipv4 %}ALLOW: "{{ rsync_src_ip }}"{% endif %}
+    delegate_to: 127.0.0.1
+    tags:
+      - skip_ansible_lint
+
+  - name: "Remove docker container rsync"
+    docker_container:
+      name: "rsyncd"
+      state: absent
+
+  - name: "Remove iptables rsync rule"
+    iptables:
+      chain: INPUT
+      source: "{{ rsync_src_ip }}"
+      protocol: tcp
+      match: tcp
+      destination_port: "{{ rsync_port }}"
+      jump: ACCEPT
+      state: absent
+    become: yes
+    when: (rsync_src_ip is defined and rsync_src_ip | ipv4)
+
+  - name: "Parse uploaded static list"
+    set_fact:
+      static_list: "{{ static_list|default([]) + deploy_static_result.stdout_lines }}"
+
+  - name: "Saving static list to file"
+    local_action: copy content="{{ static_list }}" dest="./static.list"
+
+  - name: "Remove tmp password for rsync"
+    file:
+      path: /tmp/passwordfile
+      state: absent
+    delegate_to: 127.0.0.1

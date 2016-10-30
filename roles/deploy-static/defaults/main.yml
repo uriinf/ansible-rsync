@@ -1,0 +1,6 @@
+---
+rsync_port: 873
+static_src:
+static_dst:
+delete_mode: False
+wan_ip: False

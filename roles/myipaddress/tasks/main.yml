@@ -1,0 +1,41 @@
+---
+  - name: Find my IP address ipecho.net
+    uri:
+      url: http://ipecho.net/plain
+      return_content: yes
+    register: ipecho
+    until: ipecho.content | ipv4
+    retries: 2
+    ignore_errors: True
+    delegate_to: 127.0.0.1
+    tags:
+      - skip_ansible_lint
+
+  - name: Set ipaddress variable
+    set_fact:
+      rsync_src_ip: "{{ ipecho.content | ipv4 }}"
+    when: ipecho.content | ipv4
+    delegate_to: 127.0.0.1
+    tags:
+      - skip_ansible_lint
+
+  - name: Find my IP address ifconfig.co
+    uri:
+      url: http://ifconfig.co/json
+      return_content: yes
+    when: not (ipecho.content | ipv4 )
+    register: ifconfig
+    until: ifconfig.json.ip | ipv4
+    retries: 2
+    ignore_errors: True
+    delegate_to: 127.0.0.1
+    tags:
+      - skip_ansible_lint
+
+  - name: Set ipaddress variable second attempt
+    set_fact:
+      rsync_src_ip: "{{ ifconfig.json.ip | ipv4 }}"
+    when: not (ipecho.content | ipv4 )
+    delegate_to: 127.0.0.1
+    tags:
+      - skip_ansible_lint
