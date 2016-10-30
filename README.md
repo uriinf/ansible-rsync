@@ -9,3 +9,6 @@ It will sync current directory to destination_host:/tmp/rsync
 * dst_host (rsync data to)
  * docker and docker-py installed and running
  * user deploy with permissions to run docker and modify iptables with sudo
+ 
+ ### Parameters:
+ 
