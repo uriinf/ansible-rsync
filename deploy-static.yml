@@ -4,5 +4,4 @@
     gather_facts: True
     serial: 1
     roles:
-      - myipaddress
       - { role: deploy-static, static_src: ".", static_dst: "/tmp/rsync" }

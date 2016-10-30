@@ -1,4 +1,7 @@
 ---
+  - include: wan_ip.yml
+    when: wan_ip
+
   - name: "Pull docker image rsync"
     docker_image:
       name: "uriinf/rsync"
@@ -43,7 +46,6 @@
     register: deploy_static_result
     environment:
       RSYNC_PASSWORD: "{{ rsync_password }}"
-      {% if wan_ip and rsync_src_ip | ipv4 %}ALLOW: "{{ rsync_src_ip }}"{% endif %}
     delegate_to: 127.0.0.1
     tags:
       - skip_ansible_lint

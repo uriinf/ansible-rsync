@@ -1,1 +1,1 @@
-["./", "static.list", "roles/deploy-static/tasks/main.yml"]
+["./", "deploy-static.yml", "static.list", ".git/"]
